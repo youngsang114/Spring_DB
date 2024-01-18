@@ -23,6 +23,7 @@ show tables;
 Drop table products;
 Drop table categories;
 
+
 create table categories (
 	id Int Not null auto_increment,
     name varchar(255) not null,
