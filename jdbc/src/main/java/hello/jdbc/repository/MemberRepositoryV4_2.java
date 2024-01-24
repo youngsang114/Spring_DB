@@ -5,24 +5,25 @@ import hello.jdbc.repository.ex.MyDbException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.jdbc.support.JdbcUtils;
+import org.springframework.jdbc.support.SQLErrorCodeSQLExceptionTranslator;
+import org.springframework.jdbc.support.SQLExceptionTranslator;
 
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.NoSuchElementException;
 
 /**
- * 예외 누수 문제 해결
- * 체크 예외를 런타임 예외로 변경
- * MemberRepository 인터페이스 사용
- * JDBC에 종속적인 throws SQLException을 제거!
+ * SQLExceptionTranslator 추가
  */
 
 @Slf4j
-public class MemberRepositoryV4_1 implements MemberRepository{
+public class MemberRepositoryV4_2 implements MemberRepository{
 
     private final DataSource dataSource;
-    public MemberRepositoryV4_1(DataSource dataSource) {
+    private final SQLExceptionTranslator exTranslator;
+    public MemberRepositoryV4_2(DataSource dataSource) {
         this.dataSource = dataSource;
+        this.exTranslator = new SQLErrorCodeSQLExceptionTranslator(dataSource);
     }
 
     @Override
@@ -41,7 +42,7 @@ public class MemberRepositoryV4_1 implements MemberRepository{
             return member;
 
         } catch (SQLException e){
-            throw new MyDbException(e);
+            throw exTranslator.translate("save",sql,e);
         } finally {
             close(con,pstmt,null);
         }
@@ -69,7 +70,8 @@ public class MemberRepositoryV4_1 implements MemberRepository{
             }
 
         } catch (SQLException e) {
-            throw new MyDbException(e);
+            throw exTranslator.translate("findById",sql,e);
+
         } finally {
             close(con,pstmt,rs);
         }
@@ -91,7 +93,8 @@ public class MemberRepositoryV4_1 implements MemberRepository{
             log.info("resultSize={}",resultSize);
 
         } catch (SQLException e){
-            throw new  MyDbException(e);
+            throw exTranslator.translate("update",sql,e);
+
         } finally {
             close(con,pstmt,null);
         }
@@ -108,8 +111,8 @@ public class MemberRepositoryV4_1 implements MemberRepository{
             pstmt.setString(1,memberId);
             pstmt.executeUpdate();
         } catch (SQLException e){
-            throw new MyDbException
-                    (e);
+            throw exTranslator.translate("delete",sql,e);
+
         } finally {
             close(con,pstmt,null);
         }
